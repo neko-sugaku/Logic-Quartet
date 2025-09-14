@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logic Quartet 🌸</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'M PLUS Rounded 1c', sans-serif;
+            background: linear-gradient(135deg, #fff0f5, #ffe4e1);
+            color: #5c5455; /* Default text color for light background */
+        }
+        .neumorphism-container {
+            background: #fdf5f6;
+            border-radius: 20px;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            box-shadow: 20px 20px 60px #d9d4d6, -20px -20px 60px #ffffff;
+            transition: all 0.3s ease-in-out;
+        }
+        .neumorphism-inner {
+             box-shadow: inset 7px 7px 15px #d9d4d6, inset -7px -7px 15px #ffffff;
+        }
+        .btn-neumorphism {
+            border: none;
+            border-radius: 12px;
+            color: #5c5455;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(255,255,255,0.8);
+            box-shadow: 6px 6px 12px #d9d4d6, -6px -6px 12px #ffffff;
+            transition: all 0.2s ease-in-out;
+            position: relative;
+            overflow: hidden;
+        }
+        .btn-neumorphism:before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.25), transparent);
+            transform: rotate(45deg);
+            transition: all 0.5s ease;
+            opacity: 0;
+        }
+        .btn-neumorphism:hover:before {
+            opacity: 1;
+            top: 20%;
+            left: 20%;
+        }
+        .btn-neumorphism:active {
+            box-shadow: inset 6px 6px 12px #d9d4d6, inset -6px -6px 12px #ffffff;
+        }
+        .btn-neumorphism:disabled {
+            opacity: 0.6;
+            background: #fdf5f6 !important;
+            box-shadow: inset 2px 2px 4px #d9d4d6, inset -2px -2px 4px #ffffff;
+        }
+        /* Gradients for buttons */
+        .btn-sakura-pink { background: linear-gradient(145deg, #ffccd5, #ffb3c1); }
+        .btn-sakura-green { background: linear-gradient(145deg, #a7e0a7, #8fbc8f); }
+        .btn-sakura-gray { background: linear-gradient(145deg, #f5f5f5, #e8e8e8); }
+
+        .input-neumorphism {
+            border: none;
+            outline: none;
+            border-radius: 10px;
+            background: #fdf5f6;
+            color: #5c5455;
+            box-shadow: inset 4px 4px 8px #d9d4d6, inset -4px -4px 8px #ffffff;
+            width: 50px;
+            height: 60px;
+            font-size: 2rem;
+            text-align: center;
+        }
+        input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
+        
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            border-radius: 10px;
+            background: #fae1e6;
+            box-shadow: 4px 4px 8px #d9d4d6, -4px -4px 8px #ffffff;
+        }
+        .guess-number {
+            font-size: 1.5rem;
+            letter-spacing: 0.2em;
+            font-weight: bold;
+            color: #5c5455;
+        }
+        .turn-active {
+            border: 2px solid #ff69b4;
+        }
+        .winner-board {
+            border: 4px solid #facc15; /* gold */
+            box-shadow: 0 0 25px rgba(250, 204, 21, 0.7), 20px 20px 60px #d9d4d6, -20px -20px 60px #ffffff;
+            transform: scale(1.02);
+        }
+        .winner-board h2 {
+            color: #d97706; /* Amber-600 for better contrast */
+            text-shadow: 0 0 5px #fde047;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        /* Override Tailwind text colors for light theme */
+        .text-gray-700 { color: #374151; }
+        .text-gray-600 { color: #6b7280; }
+        #setup-message, #turn-indicator { color: #374151; }
+        .bg-gray-200 { background-color: transparent !important; }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+
+    <!-- Mode Selection -->
+    <div id="mode-selection" class="neumorphism-container p-8 text-center">
+        <h1 class="text-3xl font-bold text-gray-700 mb-6">Logic Quartet 🌸</h1>
+        <div class="space-y-4">
+            <button id="start-practice-btn" class="w-full btn-neumorphism btn-sakura-pink py-3 text-xl">練習モード</button>
+            <button id="start-versus-btn" class="w-full btn-neumorphism btn-sakura-green py-3 text-xl">対戦モード</button>
+        </div>
+    </div>
+
+    <!-- Practice Mode Container -->
+    <div id="practice-container" class="w-full max-w-sm mx-auto neumorphism-container p-6 hidden">
+        <header class="text-center mb-4">
+            <h1 class="text-2xl font-bold text-gray-700">練習モード</h1>
+            <p class="text-gray-600 mt-1">隠された4桁の数字を当てよう！</p>
+        </header>
+        <div class="mb-4 p-3 neumorphism-inner rounded-lg text-sm text-gray-600">
+            <p>・<strong class="text-green-500">Hit:</strong> 数字も場所も合っている数</p>
+            <p>・<strong class="text-blue-500">Blow:</strong> 数字は合っているが場所が違う数</p>
+        </div>
+        <div id="history-practice" class="h-64 overflow-y-auto p-3 mb-4 neumorphism-inner rounded-xl"></div>
+        <div id="message-practice" class="text-center font-bold h-6 mb-4 text-xl"></div>
+        <div id="input-area-practice">
+            <div class="flex justify-center gap-3 mb-4" id="input-boxes-practice">
+                <input type="text" inputmode="numeric" class="input-neumorphism" maxlength="1">
+                <input type="text" inputmode="numeric" class="input-neumorphism" maxlength="1">
+                <input type="text" inputmode="numeric" class="input-neumorphism" maxlength="1">
+                <input type="text" inputmode="numeric" class="input-neumorphism" maxlength="1">
+            </div>
+            <button id="guess-button-practice" class="w-full btn-neumorphism btn-sakura-pink py-3 text-xl">予測する</button>
+        </div>
+        <button id="back-to-menu-practice" class="w-full btn-neumorphism btn-sakura-gray py-3 text-md mt-4">モード選択に戻る</button>
+    </div>
+
+    <!-- Versus Mode Container -->
+    <div id="versus-container" class="w-full max-w-3xl mx-auto neumorphism-container p-6 hidden">
+        <!-- Versus Setup -->
+        <div id="versus-setup">
+            <header class="text-center mb-4">
+                <h1 class="text-2xl font-bold text-gray-700">対戦モード</h1>
+            </header>
+            <div id="setup-message" class="text-center font-bold text-xl mb-4 p-4 neumorphism-inner rounded-lg">プレイヤーAは４桁の数字を決めてください</div>
+            <div class="flex justify-center gap-3 mb-4" id="input-boxes-setup">
+                <input type="text" inputmode="numeric" class="input-neumorphism" maxlength="1">
+                <input type="text" inputmode="numeric" class="input-neumorphism" maxlength="1">
+                <input type="text" inputmode="numeric" class="input-neumorphism" maxlength="1">
+                <input type="text" inputmode="numeric" class="input-neumorphism" maxlength="1">
+            </div>
+            <button id="setup-ok-button" class="w-full btn-neumorphism btn-sakura-pink py-3 text-xl">OK</button>
+        </div>
+
+        <!-- Versus Gameplay -->
+        <div id="versus-gameplay" class="hidden">
+            <header class="text-center mb-4">
+                <h1 id="turn-indicator" class="text-2xl font-bold"></h1>
+            </header>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Player A Board -->
+                <div id="board-a" class="p-4 neumorphism-inner rounded-xl">
+                    <h2 class="text-center text-xl font-bold mb-2">プレイヤー A</h2>
+                    <div id="history-a" class="h-56 overflow-y-auto p-2 mb-2 neumorphism-inner rounded-lg"></div>
+                    <div class="flex justify-center gap-2 mb-2" id="input-boxes-a">
+                       <input type="text" inputmode="numeric" class="input-neumorphism !w-1/4 !h-14 !text-2xl" maxlength="1"><input type="text" inputmode="numeric" class="input-neumorphism !w-1/4 !h-14 !text-2xl" maxlength="1"><input type="text" inputmode="numeric" class="input-neumorphism !w-1/4 !h-14 !text-2xl" maxlength="1"><input type="text" inputmode="numeric" class="input-neumorphism !w-1/4 !h-14 !text-2xl" maxlength="1">
+                    </div>
+                    <button id="guess-button-a" class="w-full btn-neumorphism btn-sakura-pink py-2">予測する</button>
+                </div>
+                <!-- Player B Board -->
+                <div id="board-b" class="p-4 neumorphism-inner rounded-xl">
+                    <h2 class="text-center text-xl font-bold mb-2">プレイヤー B</h2>
+                    <div id="history-b" class="h-56 overflow-y-auto p-2 mb-2 neumorphism-inner rounded-lg"></div>
+                    <div class="flex justify-center gap-2 mb-2" id="input-boxes-b">
+                       <input type="text" inputmode="numeric" class="input-neumorphism !w-1/4 !h-14 !text-2xl" maxlength="1"><input type="text" inputmode="numeric" class="input-neumorphism !w-1/4 !h-14 !text-2xl" maxlength="1"><input type="text" inputmode="numeric" class="input-neumorphism !w-1/4 !h-14 !text-2xl" maxlength="1"><input type="text" inputmode="numeric" class="input-neumorphism !w-1/4 !h-14 !text-2xl" maxlength="1">
+                    </div>
+                    <button id="guess-button-b" class="w-full btn-neumorphism btn-sakura-pink py-2">予測する</button>
+                </div>
+            </div>
+             <button id="back-to-menu-versus" class="w-full btn-neumorphism btn-sakura-gray py-3 text-md mt-6">モード選択に戻る</button>
+        </div>
+    </div>
+    
+    <!-- Simple Message Modal -->
+    <div id="message-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center hidden">
+        <div class="neumorphism-container p-8 rounded-xl text-center">
+            <p id="modal-text" class="text-xl mb-4"></p>
+            <button id="modal-close-btn" class="btn-neumorphism btn-sakura-gray px-6 py-2">OK</button>
+        </div>
+    </div>
+
+
+    <script>
+        const CODE_LENGTH = 4;
+        const MAX_GUESSES = 10;
+
+        // --- DOM Elements ---
+        const modeSelectionDiv = document.getElementById('mode-selection');
+        const practiceContainer = document.getElementById('practice-container');
+        const versusContainer = document.getElementById('versus-container');
+        const startPracticeBtn = document.getElementById('start-practice-btn');
+        const startVersusBtn = document.getElementById('start-versus-btn');
+        
+        // Modal
+        const messageModal = document.getElementById('message-modal');
+        const modalText = document.getElementById('modal-text');
+        const modalCloseBtn = document.getElementById('modal-close-btn');
+
+        // Practice Mode Elements
+        const historyPractice = document.getElementById('history-practice');
+        const messagePractice = document.getElementById('message-practice');
+        const inputsPractice = Array.from(document.querySelectorAll('#input-boxes-practice input'));
+        const guessBtnPractice = document.getElementById('guess-button-practice');
+        const backToMenuPractice = document.getElementById('back-to-menu-practice');
+
+        // Versus Mode Elements
+        const versusSetup = document.getElementById('versus-setup');
+        const versusGameplay = document.getElementById('versus-gameplay');
+        const setupMessage = document.getElementById('setup-message');
+        const inputsSetup = Array.from(document.querySelectorAll('#input-boxes-setup input'));
+        const setupOkButton = document.getElementById('setup-ok-button');
+        const turnIndicator = document.getElementById('turn-indicator');
+        const historyA = document.getElementById('history-a');
+        const inputsA = Array.from(document.querySelectorAll('#input-boxes-a input'));
+        const guessBtnA = document.getElementById('guess-button-a');
+        const historyB = document.getElementById('history-b');
+        const inputsB = Array.from(document.querySelectorAll('#input-boxes-b input'));
+        const guessBtnB = document.getElementById('guess-button-b');
+        const boardA = document.getElementById('board-a');
+        const boardB = document.getElementById('board-b');
+        const backToMenuVersus = document.getElementById('back-to-menu-versus');
+
+        // --- Game State ---
+        let state = {};
+
+        // --- Utility Functions ---
+        function generateSecretCode() {
+            const digits = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+            let code = [];
+            for (let i = 0; i < CODE_LENGTH; i++) {
+                const randomIndex = Math.floor(Math.random() * digits.length);
+                code.push(digits.splice(randomIndex, 1)[0]);
+            }
+            return code;
+        }
+
+        function calculateHints(guess, secret) {
+            let hits = 0;
+            let blows = 0;
+            const secretCopy = [...secret];
+            const guessCopy = [...guess];
+
+            for (let i = guessCopy.length - 1; i >= 0; i--) {
+                if (guessCopy[i] === secretCopy[i]) {
+                    hits++;
+                    guessCopy.splice(i, 1);
+                    secretCopy.splice(i, 1);
+                }
+            }
+            
+            for (let i = 0; i < guessCopy.length; i++) {
+                const foundIndex = secretCopy.indexOf(guessCopy[i]);
+                if (foundIndex > -1) {
+                    blows++;
+                    secretCopy.splice(foundIndex, 1);
+                }
+            }
+            return { hits, blows };
+        }
+        
+        function launchConfetti() {
+            const duration = 3 * 1000;
+            const animationEnd = Date.now() + duration;
+            const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 100, colors: ['#ffb6c1', '#ff8da1', '#a7e0a7', '#ffffff', '#facc15'] };
+
+            function randomInRange(min, max) {
+                return Math.random() * (max - min) + min;
+            }
+
+            const interval = setInterval(function() {
+                const timeLeft = animationEnd - Date.now();
+
+                if (timeLeft <= 0) {
+                    return clearInterval(interval);
+                }
+
+                const particleCount = 50 * (timeLeft / duration);
+                confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } }));
+                confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } }));
+            }, 250);
+        }
+
+        function setupInputHandlers(inputs) {
+             inputs.forEach((input, index) => {
+                input.addEventListener('input', () => {
+                    input.value = input.value.replace(/[^0-9]/g, '');
+                    if (input.value && index < inputs.length - 1) {
+                        inputs[index + 1].focus();
+                    }
+                });
+                input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Backspace' && !input.value && index > 0) {
+                        inputs[index - 1].focus();
+                    }
+                });
+            });
+        }
+        
+        function showMessage(msg) {
+            modalText.textContent = msg;
+            messageModal.classList.remove('hidden');
+        }
+
+        function renderHistory(history, container) {
+            container.innerHTML = '';
+            history.forEach(item => {
+                const historyItem = document.createElement('div');
+                historyItem.className = 'history-item';
+                historyItem.innerHTML = `
+                    <div class="guess-number">${item.guess.join('')}</div>
+                    <div class="text-md font-bold">
+                        <span class="text-green-500">${item.hits}H</span> 
+                        <span class="text-blue-500">${item.blows}B</span>
+                    </div>
+                `;
+                container.appendChild(historyItem);
+            });
+            container.scrollTop = container.scrollHeight;
+        }
+        
+        function validateInput(inputs) {
+            const guess = inputs.map(input => input.value);
+            if (guess.some(val => val === '')) {
+                showMessage(`4桁の数字をすべて入力してください。`);
+                return null;
+            }
+            if (new Set(guess).size !== CODE_LENGTH) {
+                showMessage('同じ数字は使えません。');
+                return null;
+            }
+            return guess;
+        }
+
+        // --- Mode Switching ---
+        function showModeSelection() {
+            modeSelectionDiv.classList.remove('hidden');
+            practiceContainer.classList.add('hidden');
+            versusContainer.classList.add('hidden');
+        }
+
+        function startPractice() {
+            modeSelectionDiv.classList.add('hidden');
+            practiceContainer.classList.remove('hidden');
+            initPracticeGame();
+        }
+
+        function startVersus() {
+            modeSelectionDiv.classList.add('hidden');
+            versusContainer.classList.remove('hidden');
+            initVersusGame();
+        }
+
+        // --- Practice Mode Logic ---
+        function initPracticeGame() {
+            state = {
+                secretCode: generateSecretCode(),
+                history: [],
+                isGameOver: false,
+            };
+            practiceContainer.classList.remove('winner-board');
+            historyPractice.innerHTML = '';
+            messagePractice.textContent = `あと ${MAX_GUESSES} 回`;
+            inputsPractice.forEach(input => input.value = '');
+            inputsPractice[0].focus();
+        }
+
+        function handlePracticeGuess() {
+            if (state.isGameOver) return;
+            const guess = validateInput(inputsPractice);
+            if (!guess) return;
+
+            const { hits, blows } = calculateHints(guess, state.secretCode);
+            state.history.push({ guess, hits, blows });
+            renderHistory(state.history, historyPractice);
+            
+            if (hits === CODE_LENGTH) {
+                state.isGameOver = true;
+                messagePractice.textContent = '正解！おめでとう！';
+                practiceContainer.classList.add('winner-board');
+                launchConfetti();
+            } else if (state.history.length >= MAX_GUESSES) {
+                state.isGameOver = true;
+                messagePractice.textContent = `ゲームオーバー 正解は ${state.secretCode.join('')}`;
+            } else {
+                 messagePractice.textContent = `あと ${MAX_GUESSES - state.history.length} 回`;
+            }
+            inputsPractice.forEach(input => input.value = '');
+            inputsPractice[0].focus();
+        }
+
+        // --- Versus Mode Logic ---
+        function initVersusGame() {
+            state = {
+                setupStep: 'A',
+                secretCodeA: [],
+                secretCodeB: [],
+                historyA: [],
+                historyB: [],
+                turn: 'A',
+                isGameOver: false,
+            };
+            versusSetup.classList.remove('hidden');
+            versusGameplay.classList.add('hidden');
+            boardA.classList.remove('winner-board');
+            boardB.classList.remove('winner-board');
+            setupMessage.textContent = 'プレイヤーAは４桁の数字を決めてください';
+            inputsSetup.forEach(input => input.value = '');
+            inputsSetup[0].focus();
+        }
+
+        function handleSetup() {
+            const code = validateInput(inputsSetup);
+            if (!code) return;
+
+            if (state.setupStep === 'A') {
+                state.secretCodeA = code;
+                state.setupStep = 'B';
+                setupMessage.textContent = 'プレイヤーBは４桁の数字を決めてください';
+                inputsSetup.forEach(input => input.value = '');
+                inputsSetup[0].focus();
+            } else {
+                state.secretCodeB = code;
+                versusSetup.classList.add('hidden');
+                versusGameplay.classList.remove('hidden');
+                historyA.innerHTML = '';
+                historyB.innerHTML = '';
+                updateTurnUI();
+            }
+        }
+        
+        function updateTurnUI() {
+            if (state.isGameOver) return;
+            turnIndicator.textContent = `プレイヤー ${state.turn} の番`;
+            if (state.turn === 'A') {
+                boardA.classList.add('turn-active');
+                boardB.classList.remove('turn-active');
+                inputsA.forEach(i => i.disabled = false);
+                inputsB.forEach(i => i.disabled = true);
+                guessBtnA.disabled = false;
+                guessBtnB.disabled = true;
+                inputsA[0].focus();
+            } else {
+                boardB.classList.add('turn-active');
+                boardA.classList.remove('turn-active');
+                inputsB.forEach(i => i.disabled = false);
+                inputsA.forEach(i => i.disabled = true);
+                guessBtnB.disabled = false;
+                guessBtnA.disabled = true;
+                inputsB[0].focus();
+            }
+        }
+
+        function handleVersusGuess(player) {
+            if (state.isGameOver || player !== state.turn) return;
+
+            const inputs = (player === 'A') ? inputsA : inputsB;
+            const secret = (player === 'A') ? state.secretCodeB : state.secretCodeA;
+            const history = (player === 'A') ? state.historyA : state.historyB;
+            const historyContainer = (player === 'A') ? historyA : historyB;
+
+            const guess = validateInput(inputs);
+            if (!guess) return;
+
+            const { hits, blows } = calculateHints(guess, secret);
+            history.push({ guess, hits, blows });
+            renderHistory(history, historyContainer);
+
+            if (hits === CODE_LENGTH) {
+                state.isGameOver = true;
+                turnIndicator.textContent = `プレイヤー ${player} の勝ち！`;
+                const winnerBoard = (player === 'A') ? boardA : boardB;
+                winnerBoard.classList.add('winner-board');
+                launchConfetti();
+                boardA.classList.remove('turn-active');
+                boardB.classList.remove('turn-active');
+                guessBtnA.disabled = true;
+                guessBtnB.disabled = true;
+            } else {
+                state.turn = (state.turn === 'A') ? 'B' : 'A';
+                updateTurnUI();
+            }
+            inputs.forEach(input => input.value = '');
+            inputs[0].focus();
+        }
+
+        // --- Event Listeners ---
+        startPracticeBtn.addEventListener('click', startPractice);
+        startVersusBtn.addEventListener('click', startVersus);
+        backToMenuPractice.addEventListener('click', showModeSelection);
+        backToMenuVersus.addEventListener('click', showModeSelection);
+        
+        modalCloseBtn.addEventListener('click', () => messageModal.classList.add('hidden'));
+
+        // Practice Listeners
+        guessBtnPractice.addEventListener('click', handlePracticeGuess);
+        inputsPractice.forEach(input => input.addEventListener('keydown', e => e.key === 'Enter' && handlePracticeGuess()));
+
+        // Versus Listeners
+        setupOkButton.addEventListener('click', handleSetup);
+        inputsSetup.forEach(input => input.addEventListener('keydown', e => e.key === 'Enter' && handleSetup()));
+        guessBtnA.addEventListener('click', () => handleVersusGuess('A'));
+        inputsA.forEach(input => input.addEventListener('keydown', e => e.key === 'Enter' && handleVersusGuess('A')));
+        guessBtnB.addEventListener('click', () => handleVersusGuess('B'));
+        inputsB.forEach(input => input.addEventListener('keydown', e => e.key === 'Enter' && handleVersusGuess('B')));
+
+        // --- Initial Setup ---
+        setupInputHandlers(inputsPractice);
+        setupInputHandlers(inputsSetup);
+        setupInputHandlers(inputsA);
+        setupInputHandlers(inputsB);
+        showModeSelection();
+    </script>
+</body>
+</html>
+
+
